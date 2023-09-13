@@ -9,7 +9,8 @@ import 'package:memo/model/memo_model.dart';
 // 新規作成の時は空文字のtitleとcontentを渡す
 // 編集の時はすでに入っているtitleとcontentを渡す
 class MemoPage extends StatefulWidget {
-  const MemoPage({super.key, required this.appBarTitle, required this.memoModel});
+  const MemoPage(
+      {super.key, required this.appBarTitle, required this.memoModel});
 
   final String appBarTitle; // 新規作成か編集か
   final MemoModel memoModel; // 編集の時はすでに入っているtitleとcontentを渡す
@@ -28,9 +29,9 @@ class _MemoPage extends State<MemoPage> {
   @override
   void initState() {
     super.initState();
+    // 編集の時はすでに入っているtitleとcontentをControllerに渡す
     titleController.text = widget.memoModel.title;
     contentController.text = widget.memoModel.content ?? '';
-    // isPressed = widget.favorite;
   }
 
   @override
@@ -42,14 +43,22 @@ class _MemoPage extends State<MemoPage> {
         actions: [
           TextButton.icon(
             onPressed: () async {
-              if (widget.appBarTitle == '新規作成') {
-                await newData(titleController.text, contentController.text);
-              } else if (widget.appBarTitle == '編集') {
-                await editData(widget.memoModel.pageId, titleController.text, contentController.text);
+              if (titleController.text.isEmpty) {
+                // タイトルが空の時は保存しない // isEmptyは空文字の時trueを返す
+                noTitleShowDialog(); // タイトル未記入警告のポップアップを表示
+                return;
+              } else if (titleController.text.isEmpty == false) {
+                if (widget.appBarTitle == '新規作成') {
+                  await newData(titleController.text, contentController.text);
+                } else if (widget.appBarTitle == '編集') {
+                  await editData(widget.memoModel.pageId, titleController.text,
+                      contentController.text);
+                }
               }
               titleController.clear();
               contentController.clear();
-              if (!mounted) return; // このページが表示されていない時にpopするとエラーが出るので、mountedで判定する
+              if (!mounted)
+                return; // このページが表示されていない時にpopするとエラーが出るので、mountedで判定する
               Navigator.pop(context);
             },
             icon: const Icon(Icons.save),
@@ -64,6 +73,7 @@ class _MemoPage extends State<MemoPage> {
               getDate(),
               TextField(
                 controller: titleController,
+                autofocus: true, // 画面を開いた時に自動でtitle入力部分にフォーカスする
                 style: const TextStyle(
                   fontSize: 25,
                 ),
@@ -88,9 +98,29 @@ class _MemoPage extends State<MemoPage> {
     );
   }
 
+  noTitleShowDialog() {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('タイトルがありません。'), // ポップアップウィンドウが開いた時のタイトル
+          content: const Text('保存するにはタイトルを記入する必要があります。'), // 内容
+          actions: <Widget>[
+            // actionはボタンの配置
+            TextButton(
+              child: const Text('閉じる'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Map<String, String> headers = {
     'content-type': 'application/json',
-    "Authorization": "Bearer secret_oDZaAv4PxyEK3FDlm8fetk5IvvuXmtTcvbvrV03Fvkw",
+    "Authorization":
+        "Bearer secret_oDZaAv4PxyEK3FDlm8fetk5IvvuXmtTcvbvrV03Fvkw",
     "Notion-Version": "2022-06-28",
   };
 
@@ -103,7 +133,8 @@ class _MemoPage extends State<MemoPage> {
       String body = json.encode(postData);
       // log('bodyの中身: $body');
       log('2');
-      http.Response response = await http.post(url, headers: headers, body: body);
+      http.Response response =
+          await http.post(url, headers: headers, body: body);
       log('3');
       // log('responseの中身: ${response.body}');
       // log('responseの型: ${response.runtimeType}');
@@ -121,7 +152,8 @@ class _MemoPage extends State<MemoPage> {
       Uri url = Uri.parse('https://api.notion.com/v1/pages/$pageId');
       Map<String, dynamic> postData = newMemoModel.toJson(title, content);
       String body = json.encode(postData);
-      http.Response response = await http.patch(url, headers: headers, body: body);
+      http.Response response =
+          await http.patch(url, headers: headers, body: body);
       // log('responseの中身: ${response.body}');
       return response;
     } catch (e) {
@@ -132,16 +164,25 @@ class _MemoPage extends State<MemoPage> {
 
   // メモ編集画面の時、上記に日付を出すためのウィジェット
   Widget getDate() {
-    DateFormat outputFormat = DateFormat('最終更新日：yyyy年MM月dd日'); // DateFormatで変換後の形を指定する
+    DateFormat outputFormat =
+        DateFormat('最終更新日：yyyy年MM月dd日'); // DateFormatで変換後の形を指定する
     if (widget.appBarTitle == '新規作成') {
       DateTime now = DateTime.now(); // 現在の時間を取得
       String newDate = outputFormat.format(now); // 新規作成の時
-      return Text(newDate, style: const TextStyle(fontSize: 18, color: Colors.black54,));
+      return Text(newDate,
+          style: const TextStyle(
+            fontSize: 18,
+            color: Colors.black54,
+          ));
     } else if (widget.appBarTitle == '編集') {
       // 一度String型で取ってたモデルからのデータをDateTime型に変換
       final lastEditedTime = DateTime.parse(widget.memoModel.dateTime);
       String lastEditedDate = outputFormat.format(lastEditedTime); // 編集時
-      return Text(lastEditedDate, style: const TextStyle(fontSize: 18, color: Colors.black54,));
+      return Text(lastEditedDate,
+          style: const TextStyle(
+            fontSize: 18,
+            color: Colors.black54,
+          ));
     } else {
       return const Text('');
     }

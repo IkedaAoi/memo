@@ -54,33 +54,39 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
         // padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
-            Container(
-                margin: const EdgeInsets.all(15),
-                child: const Text('お気に入り', style: TextStyle(fontSize: 20))
-            ),
-            favoriteList(),
-            Container(
-                margin: const EdgeInsets.all(15),
-                child: const Text('その他メモ一覧', style: TextStyle(fontSize: 20))
-            ),
-            normalList(),
-          ]
-        ),
+        child: Column(children: [
+          Container(
+              margin: const EdgeInsets.all(15),
+              child: const Text('お気に入り', style: TextStyle(fontSize: 20))),
+          favoriteList(),
+          Divider(
+            thickness: 1,
+            color: Colors.grey.shade400,
+            indent: 10,
+            endIndent: 10,
+          ),
+          Container(
+              margin: const EdgeInsets.all(15),
+              child: const Text('その他メモ一覧', style: TextStyle(fontSize: 20))),
+          normalList(),
+          const SizedBox(height: 80),
+        ]),
       ),
       floatingActionButton: newData(),
     );
   }
 
   Column favoriteList() {
-    var favoriteList = memoList.where((element) => element.isFavorite == true).toList();
+    var favoriteList =
+        memoList.where((element) => element.isFavorite == true).toList();
     return Column(
       children: titleList(favoriteList),
     );
   }
+
   Column normalList() {
-    var normalList = memoList.where((element) => element.isFavorite == false).toList();
+    var normalList =
+        memoList.where((element) => element.isFavorite == false).toList();
     titleList(normalList);
     return Column(
       children: titleList(normalList),
@@ -97,12 +103,14 @@ class _MyHomePageState extends State<MyHomePage> {
         key: UniqueKey(),
         // 重複しない値を設定する
         direction: DismissDirection.endToStart,
-        onDismissed: (direction) {
+        onDismissed: (direction) async {
           setState(() {
             list.remove(element); // アプリ画面から消す
-            deleteData(element.pageId); // DBからの削除（アーカイブ）を呼び出す
           });
+          await deleteData(element.pageId); // DBからの削除（アーカイブ）を呼び出す
+          getData();
         },
+        // スワイプ時に表示されるダイアログ。tureの時のみonDismissedが実行される。
         confirmDismiss: (direction) async {
           return await deleteShowDialog(element);
         },
@@ -125,8 +133,7 @@ class _MyHomePageState extends State<MyHomePage> {
       elevation: 0.5,
       child: ListTile(
         tileColor: Colors.white,
-        title: Text(element.title,
-            style: const TextStyle(fontSize: 20)),
+        title: Text(element.title, style: const TextStyle(fontSize: 20)),
         subtitle: Text(element.content!,
             maxLines: 1, // 最大表示行数
             style: const TextStyle(
@@ -168,7 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, String> headers = {
     'content-type': 'application/json',
     "Authorization":
-    "Bearer secret_oDZaAv4PxyEK3FDlm8fetk5IvvuXmtTcvbvrV03Fvkw",
+        "Bearer secret_oDZaAv4PxyEK3FDlm8fetk5IvvuXmtTcvbvrV03Fvkw",
     "Notion-Version": "2022-06-28",
   };
 
@@ -179,7 +186,8 @@ class _MyHomePageState extends State<MyHomePage> {
       Map<String, dynamic> mapObject = memoModel.favoriteToJson(status);
       // patchで一部のデータを更新する
       String body = json.encode(mapObject);
-      http.Response response = await http.patch(url, headers: headers, body: body);
+      http.Response response =
+          await http.patch(url, headers: headers, body: body);
       log('changeFavoriteData()のレスポンス: ${response.body}');
     } catch (e) {
       print('changeFavoriteData()で例外処理が発生');
@@ -235,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } catch (e) {
       print('getData()で例外処理が発生');
       print(e);
-      return  [];
+      return [];
     }
   }
 
@@ -247,7 +255,8 @@ class _MyHomePageState extends State<MyHomePage> {
       // patchで一部のデータを更新する
       Map<String, dynamic> postData = memoModel.deleteToJson();
       String body = json.encode(postData);
-      http.Response response = await http.patch(url, headers: headers, body: body);
+      http.Response response =
+          await http.patch(url, headers: headers, body: body);
       log('deleteData()のレスポンス: ${response.statusCode}');
     } catch (e) {
       print('deleteData()で例外処理が発生');
